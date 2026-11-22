@@ -8,10 +8,12 @@ Self-contained HTML embeds for Articulate Rise 360. Each embed is one HTML file 
 
 ## Using an embed in Rise
 
-1. Open the embed's `.html` file and copy the whole file contents.
-2. In Rise 360, add an **Embed** block to your lesson and paste the HTML into the embed code field.
-3. Set the block height to fit the embed (the scenario is designed for a 640px-wide column; 700px height is a sensible start, then preview on mobile and adjust).
-4. Preview the lesson and complete the embed once to check the summary screen.
+New to this? Read the [step-by-step guide for instructional designers](USAGE.md) first.
+
+If you're comfortable with HTML files, the short version:
+1. Open the `.html` file, select all, copy.
+2. In Rise 360, add an **Embed** block and paste.
+3. Set block height to 700px, preview, adjust if needed.
 
 ## Customising the scenario data
 
