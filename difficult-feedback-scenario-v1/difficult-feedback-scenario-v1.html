@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handling Difficult Feedback</title>
+<!-- Theory applied: Situated Learning (Lave & Wenger, #20) — Rationale: learners rehearse a realistic workplace conversation and see the consequence of each choice. -->
+<!-- LO-01-01: Learners will be able to demonstrate a private, specific and forward-looking approach to difficult feedback. -->
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; color: #1d1d1f; background: #fff; margin: 0; padding: 16px; line-height: 1.5; }
+  main { max-width: 640px; margin: 0 auto; }
+  progress { width: 100%; height: 12px; }
+  button { display: block; width: 100%; margin: 8px 0; padding: 12px; font: inherit; text-align: left; color: #1d1d1f; background: #fff; border: 2px solid #1f4e9a; border-radius: 6px; cursor: pointer; }
+  button:hover:not(:disabled) { background: #e8eef9; }
+  button:focus-visible { outline: 3px solid #ffb000; outline-offset: 2px; }
+  button:disabled { border-color: #8a8a8a; color: #4a4a4a; cursor: default; }
+  .primary { color: #fff; background: #1f4e9a; text-align: center; }
+  .primary:hover:not(:disabled) { background: #173a75; }
+  .panel { background: #f3f5f9; border-radius: 8px; padding: 16px; margin-top: 12px; }
+  #score { font-size: 56px; font-weight: bold; color: #1f4e9a; line-height: 1.1; margin: 8px 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Handling difficult feedback</h1>
+  <p id="step" aria-live="polite"></p>
+  <progress id="bar" value="0" aria-label="Scenario progress"></progress>
+
+  <section id="scene">
+    <p id="prompt"></p>
+    <div id="choices" role="group" aria-label="Choose your response"></div>
+    <div id="feedback" class="panel" hidden>
+      <p id="consequence"></p>
+      <button id="cont" class="primary"></button>
+    </div>
+  </section>
+
+  <section id="summary" hidden>
+    <h2 id="result">Your score</h2>
+    <p id="score" aria-label="Score"></p>
+    <p id="band"></p>
+    <ol id="log"></ol>
+    <button id="restart" class="primary">Restart scenario</button>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+
+// Branching graph: each choice points to the next node. Binary scoring: 1 = effective, 0 = not quite.
+const nodes = {
+  d1: { n: 1, text: "You lead a team of six. Priya has missed two project deadlines this month, and your manager has asked you to address it. Where do you give the feedback?",
+    choices: [
+      { label: "Raise it at the team stand-up so everyone hears it.", points: 0, next: "d2",
+        consequence: "Not quite. Public criticism puts Priya on the defensive and can damage trust across the team. Difficult feedback is best given in private." },
+      { label: "Book a private one-to-one this week.", points: 1, next: "d2",
+        consequence: "Effective. A private setting lets Priya respond without an audience, which makes an honest conversation more likely." } ] },
+  d2: { n: 2, text: "You sit down with Priya. Which opening do you use?",
+    choices: [
+      { label: "\"Your work has been sloppy, and it needs to improve.\"", points: 0, next: "d3",
+        consequence: "Not quite. This judges Priya rather than describing what happened, so it invites defensiveness." },
+      { label: "\"Two deadlines slipped this month. I'd like to understand what happened from your side.\"", points: 1, next: "d3",
+        consequence: "Effective. You name the specific behaviour, state the facts and invite her view, which keeps the focus on the work." } ] },
+  d3: { n: 3, text: "Priya says, \"Everyone misses deadlines sometimes. You're making a fuss about nothing.\" How do you respond?",
+    choices: [
+      { label: "\"That's not fair. The team has been affected, so this matters.\"", points: 0, next: "d4b",
+        consequence: "Not quite. Arguing about whether the feedback is fair turns the conversation into a debate. Acknowledge her view first, then return to the facts." },
+      { label: "\"I hear that. What got in the way on the Harlow project?\"", points: 1, next: "d4a",
+        consequence: "Effective. You acknowledge her view, then ask a specific question. This keeps the conversation focused and gives her room to explain." } ] },
+  d4a: { n: 4, text: "Priya explains that the requirements were unclear and she was waiting for answers. What do you agree as the next step?",
+    choices: [
+      { label: "\"Just try harder next time, and let me know if you need anything.\"", points: 0, next: "end",
+        consequence: "Not quite. \"Harder\" is vague, and nobody can check progress. Agree specific actions with a date." },
+      { label: "\"Let's agree two actions: you put scope questions in writing by Friday, and we review the plan on Wednesday.\"", points: 1, next: "end",
+        consequence: "Effective. The next step is specific, owned by Priya and has a check-in date, so progress can be seen and supported." } ] },
+  d4b: { n: 4, text: "Priya goes quiet and says, \"Fine.\" What do you do next?",
+    choices: [
+      { label: "Leave it. She will come around.", points: 0, next: "end",
+        consequence: "Not quite. Silence after feedback often means the person has not agreed. Without a follow-up, the problem will repeat." },
+      { label: "\"What would make the next two weeks easier? Let's check in on Thursday.\"", points: 1, next: "end",
+        consequence: "Effective. You reopen the conversation with an open question and a set time, which shows you want to solve the problem with her." } ] }
+};
+
+// Longest path from d1 to "end" = number of decisions on any run through the scenario.
+const depth = id => id === "end" ? 0 : 1 + Math.max(...nodes[id].choices.map(c => depth(c.next)));
+const TOTAL = depth("d1");
+$("bar").max = TOTAL;
+
+let cur = "d1", score = 0, log = [];
+
+function render() {
+  const done = cur === "end";
+  $("scene").hidden = done;
+  $("summary").hidden = !done;
+  if (done) return summary();
+  const node = nodes[cur];
+  $("step").textContent = `Decision ${node.n} of ${TOTAL}`;
+  $("bar").value = node.n - 1;
+  $("prompt").textContent = node.text;
+  $("feedback").hidden = true;
+  $("choices").replaceChildren(...node.choices.map((c, i) => {
+    const b = document.createElement("button");
+    b.textContent = c.label;
+    b.onclick = () => choose(i);
+    return b;
+  }));
+  $("choices").firstChild.focus();
+}
+
+function choose(i) {
+  const node = nodes[cur], c = node.choices[i];
+  score += c.points;
+  log.push({ n: node.n, good: c.points === 1, label: c.label });
+  const buttons = document.querySelectorAll("#choices button");
+  buttons.forEach(b => b.disabled = true);
+  buttons[i].style.borderColor = c.points === 1 ? "#2e7d32" : "#c62828";
+  $("consequence").textContent = c.consequence;
+  $("cont").textContent = c.next === "end" ? "See my score" : "Continue";
+  $("cont").onclick = () => { cur = c.next; render(); };
+  $("feedback").hidden = false;
+  $("cont").focus();
+}
+
+function summary() {
+  $("score").textContent = `${score} / ${TOTAL}`;
+  $("band").textContent = score === TOTAL ? "Strong: you can run a difficult feedback conversation from start to finish."
+    : score >= 2 ? "Developing: you have the right instincts. Practise the points you missed."
+    : "Revisit: review the principles of private, specific and forward-looking feedback.";
+  $("log").replaceChildren(...log.map(e => {
+    const li = document.createElement("li");
+    li.textContent = `Decision ${e.n}: ${e.good ? "Effective" : "Not quite"}. You chose: ${e.label}`;
+    return li;
+  }));
+  $("restart").focus();
+}
+
+$("restart").onclick = () => { cur = "d1"; score = 0; log = []; render(); };
+
+// Self-check (console only): every choice must point to a real node.
+Object.values(nodes).forEach(n => n.choices.forEach(c => {
+  if (c.next !== "end" && !nodes[c.next]) console.error("Broken link:", c.next);
+}));
+
+render();
+</script>
+</body>
+</html>
