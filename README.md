@@ -63,6 +63,12 @@ Rules:
 
 ## Credits
 
-Built by [Sunil](https://github.com/linuxsunil), Senior Instructional Designer.
-
 Coding discipline: [Ponytail](https://github.com/dietrichgebert/ponytail) by Dietrich Gebert — write only what the task needs.
+
+---
+
+## About the author
+
+[Sunil Iyer](https://www.linkedin.com/in/sunil-iyer-b545964/) is a Senior Instructional Designer with 10+ years of experience building eLearning for global organisations. He specialises in AI-powered course development, SCORM/xAPI, and Articulate Rise 360 / Storyline 360.
+
+[GitHub](https://github.com/linuxsunil) · [LinkedIn](https://www.linkedin.com/in/sunil-iyer-b545964/)
